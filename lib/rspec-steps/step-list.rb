@@ -1,4 +1,5 @@
 require 'rspec-steps/step-result'
+require 'rspec-steps/step-runner'
 
 module RSpec::Steps
   class StepList
@@ -54,16 +55,19 @@ module RSpec::Steps
 
     def run_only_once(context_example, running_example)
       return unless @results.nil?
+
       failed_step = nil
       @let_bangs.each do |let_name|
         context_example.__send__(let_name)
       end
 
+      step_runner = StepRunner.new(context_example, running_example)
+
       @results = Hash[ @steps.map do |step|
         [
           step,
           if failed_step.nil?
-            result = capture_result(step, context_example, running_example)
+            result = capture_result(step, step_runner)
             if result.failed?
               failed_step = result
             end
@@ -73,10 +77,14 @@ module RSpec::Steps
           end
         ]
       end ]
+
+      step_runner.instance_eval do
+        @step_context.run_after_hooks(:step, @example_runner)
+      end
     end
 
-    def capture_result(step, context_example, running_example)
-      StepResult.new(step, step.run_inside(context_example, running_example), nil, nil)
+    def capture_result(step, step_runner)
+      StepResult.new(step, step.run_inside(step_runner), nil, nil)
     rescue BasicObject => ex
       StepResult.new(step, nil, ex, nil)
     end

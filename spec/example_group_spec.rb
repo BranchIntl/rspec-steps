@@ -32,7 +32,17 @@ describe RSpec::Core::ExampleGroup do
           include Testing
           extend Testing
 
-          it("accesses a method from a module"){ expect(something).to eq 42 }
+          step "accesses a method from a module" do
+            describe "something" do
+              subject { something }
+
+              it { should eq 42 }
+
+              it("accesses a method from a module"){ expect(subject).to eq 42 }
+
+              it("accesses a method from a module"){ expect(something).to eq 42 }
+            end
+          end
         end
         group.run
       end
@@ -48,9 +58,22 @@ describe RSpec::Core::ExampleGroup do
         group = RSpec.steps "Test Steps" do
           let! :array do [] end
           let :number do 17 end
-          it("adds number to array"){ array << number }
-          it("adds number to array twice"){ array << number }
-          it("checks array"){ expect(array).to eq([17,17])}
+
+          step "add number to array" do
+            before { array << number }
+
+            it { expect(array).to eq([17]) }
+          end
+
+          step "add number to array twice" do
+            before { array << number }
+
+            it { expect(array).to eq([17, 17]) }
+          end
+
+          step "checks array" do
+            it { expect(array).to eq([17, 17]) }
+          end
         end
         group.run
       end

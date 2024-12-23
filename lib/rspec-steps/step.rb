@@ -4,6 +4,7 @@ module RSpec::Steps
       super
       @failed_step = nil
     end
+
     attr_accessor :failed_step
 
     def define_on(step_list, example_group)
@@ -16,8 +17,12 @@ module RSpec::Steps
       end
     end
 
-    def run_inside(example, ex_obj)
-      example.instance_exec(ex_obj, &action)
+    def run_inside(step_runner)
+      action = self.action
+
+      step_runner.instance_eval do
+        instance_exec(@running_example, &action)
+      end
     end
 
   end
