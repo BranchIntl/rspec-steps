@@ -41,7 +41,7 @@ module RSpec::Steps
       hooks = @around_hooks[scope]
       return block.call if hooks.empty?
 
-      hooks.reduce(block) do |wrapped_block, hook|
+      hooks.reverse.reduce(block) do |wrapped_block, hook|
         -> { example.instance_exec(wrapped_block, &hook) }
       end.call
     end

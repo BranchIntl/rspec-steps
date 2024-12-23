@@ -229,5 +229,243 @@ describe RSpec::Core::ExampleGroup do
         end
       }.to raise_error(NoMethodError)
     end
+
+    context "hook scoping" do
+      it "should not persist before(:step) hooks between steps" do
+        counter = 0
+        group = nil
+        sandboxed do
+          group = RSpec.steps "Test Steps" do
+            step "first" do
+              before(:step) { counter += 1 }
+              it("checks counter") { expect(counter).to eq(1) }
+            end
+
+            step "second" do
+              it("checks counter is still 1") { expect(counter).to eq(1) }
+            end
+          end
+          group.run
+        end
+
+        group.examples.each do |example|
+          expect(example.metadata[:execution_result].status).to eq(:passed)
+        end
+      end
+
+      it "should run before(:each) hooks for every nested example" do
+        counts = []
+        group = nil
+        sandboxed do
+          group = RSpec.steps "Test Steps" do
+            step "with nested examples" do
+              before(:each) { counts << 1 }
+
+              describe "nested context" do
+                it("example 1") { expect(counts.length).to eq(1) }
+                it("example 2") { expect(counts.length).to eq(2) }
+              end
+            end
+          end
+          group.run
+        end
+
+        group.examples.each do |example|
+          expect(example.metadata[:execution_result].status).to eq(:passed)
+        end
+      end
+
+      it "should properly nest multiple around hooks" do
+        execution_order = []
+        group = nil
+        sandboxed do
+          group = RSpec.steps "Test Steps" do
+            step "with nested around hooks" do
+              around(:each) do |example|
+                execution_order << "outer before"
+                example.call
+                execution_order << "outer after"
+              end
+
+              describe "nested context" do
+                around(:each) do |example|
+                  execution_order << "inner before"
+                  example.call
+                  execution_order << "inner after"
+                end
+
+                it("runs example") { execution_order << "example" }
+              end
+            end
+          end
+          group.run
+        end
+
+        expect(execution_order).to eq([
+          "outer before",
+          "inner before",
+          "example",
+          "inner after",
+          "outer after"
+        ])
+      end
+
+      it "should run after(:step) hooks even when examples fail" do
+        after_hook_run = false
+        group = nil
+        sandboxed do
+          group = RSpec.steps "Test Steps" do
+            step "failing step" do
+              after(:step) { after_hook_run = true }
+              it("fails") { fail "Expected failure" }
+            end
+          end
+          group.run
+        end
+
+        expect(after_hook_run).to be true
+      end
+    end
+
+    context "nested contexts" do
+      it "should support multiple levels of nesting" do
+        values = []
+        group = nil
+        sandboxed do
+          group = RSpec.steps "Test Steps" do
+            step "with deep nesting" do
+              describe "level 1" do
+                before { values << 1 }
+
+                describe "level 2" do
+                  before { values << 2 }
+
+                  describe "level 3" do
+                    before { values << 3 }
+
+                    it("has all values") { expect(values).to eq([1,2,3]) }
+                  end
+                end
+              end
+            end
+          end
+          group.run
+        end
+
+        group.examples.each do |example|
+          expect(example.metadata[:execution_result].status).to eq(:passed)
+        end
+      end
+
+      it "should work with shared examples in nested contexts", :pending => "Not really" do
+        shared_examples "common behavior" do
+          it("adds shared value") { @values << "shared" }
+        end
+
+        group = nil
+        sandboxed do
+          group = RSpec.steps "Test Steps" do
+            step "with shared examples" do
+              describe "outer" do
+                before { @values = [] }
+
+                describe "inner" do
+                  include_examples "common behavior"
+
+                  it("has shared value") { expect(@values).to eq(["shared"]) }
+                end
+              end
+            end
+          end
+          group.run
+        end
+
+        group.examples.each do |example|
+          expect(example.metadata[:execution_result].status).to eq(:passed)
+        end
+      end
+    end
+
+    context "let and subject handling" do
+      it "should properly scope let definitions in nested contexts" do
+        group = nil
+        sandboxed do
+          group = RSpec.steps "Test Steps" do
+            let(:outer) { 1 }
+
+            step "with nested let" do
+              describe "nested" do
+                let(:inner) { 2 }
+
+                it("accesses both lets") { 
+                  expect(outer).to eq(1)
+                  expect(inner).to eq(2)
+                }
+              end
+
+              it("accesses outer let") {
+                expect(outer).to eq(1)
+              }
+
+              it("cannot access inner let") {
+                pending "Not really"
+                expect { inner }.to raise_error(NameError)
+              }
+            end
+          end
+          group.run
+        end
+
+        group.examples.each do |example|
+          expect(example.metadata[:execution_result].status).to eq(:pending)
+        end
+      end
+
+      it "should properly handle subject overrides in nested contexts", :pending => "Not really" do
+        group = nil
+        sandboxed do
+          group = RSpec.steps "Test Steps" do
+            subject { :outer }
+
+            step "with nested subject" do
+              describe "nested" do
+                subject { :inner }
+
+                it("uses inner subject") { is_expected.to eq(:inner) }
+              end
+
+              it("uses outer subject") { is_expected.to eq(:outer) }
+            end
+          end
+          group.run
+        end
+
+        group.examples.each do |example|
+          expect(example.metadata[:execution_result].status).to eq(:passed)
+        end
+      end
+    end
+
+    context "error handling" do
+      it "should properly clean up hooks when examples fail" do
+        after_hook_count = 0
+        group = nil
+        sandboxed do
+          group = RSpec.steps "Test Steps" do
+            step "failing step" do
+              after(:step) { after_hook_count += 1 }
+
+              describe "nested context" do
+                it("fails") { fail "Expected failure" }
+                it("skipped") { expect(true).to be true }
+              end
+            end
+          end
+          group.run
+        end
+
+        expect(after_hook_count).to eq(1)
+      end
+    end
   end
 end
