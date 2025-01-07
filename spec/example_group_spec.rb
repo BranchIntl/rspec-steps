@@ -83,6 +83,34 @@ describe RSpec::Core::ExampleGroup do
       end
     end
 
+    it "should work with before blocks" do
+      group = nil
+      sandboxed do
+        group = RSpec.steps "Top Level Before Block" do
+          before { @a = 10 }
+
+          step "check initial value" do
+            it { expect(@a).to eq(10) }
+          end
+
+          step "increment value" do
+            before { @a += 5 }
+            it { expect(@a).to eq(15) }
+          end
+
+          step "decrement value" do
+            before { @a -= 3 }
+            it { expect(@a).to eq(12) }
+          end
+        end
+        group.run
+      end
+
+      group.examples.each do |example|
+        expect(example.metadata[:execution_result].status).to eq(:passed)
+      end
+    end
+
     it "should work with shared_steps/perform steps" do
       group = nil
       sandboxed do
