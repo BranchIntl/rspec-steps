@@ -26,10 +26,6 @@ module RSpec::Steps
       raise "there is already a step list named #{name}" if SharedSteps.has_key?(name)
       SharedSteps[name] = Describer.new(*args, {:caller => caller}, &block)
     end
-
-    def shared_example(name, &block)
-      SharedExamples[name] = block
-    end
   end
   extend DSL
 end
