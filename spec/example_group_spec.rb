@@ -106,6 +106,36 @@ describe RSpec::Core::ExampleGroup do
       end
     end
 
+    it "should work with shared_examples" do
+      group = nil
+      sandboxed do
+        group = RSpec.steps "Test Steps" do
+          shared_examples "common behavior" do |value|
+            it("adds shared value") { values << value }
+          end
+
+          let(:values) { [] }
+
+          step "adds first value" do
+            it_behaves_like "common behavior", "first"
+          end
+
+          step "adds second value" do
+            it_behaves_like "common behavior", "second"
+          end
+
+          step "check values" do
+            it { expect(values).to eq(["first", "second"]) }
+          end
+        end
+        group.run
+      end
+
+      group.examples.each do |example|
+        expect(example.metadata[:execution_result].status).to eq(:passed)
+      end
+    end
+
     it "should be able to access an example in blocks" do
       group = nil
       metadata = nil

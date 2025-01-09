@@ -10,6 +10,7 @@ module RSpec::Steps
   end
 
   SharedSteps = {}
+  SharedExamples = {}
 
   module DSL
     def steps(*args, &block)
