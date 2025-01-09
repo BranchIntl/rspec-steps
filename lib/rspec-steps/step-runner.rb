@@ -108,6 +108,12 @@ module RSpec::Steps
       end
     end
 
+    def it_behaves_like(name, *args)
+      describe(name) do
+        instance_exec(*args, &SharedExamples[name])
+      end
+    end
+
     def method_missing(method, *args, &block)
       @context_example.class.send(method, *args, &block)
     end

@@ -46,6 +46,10 @@ module RSpec::Steps
       SharedSteps[name] = Describer.new(args, {:caller => caller}, &block)
     end
 
+    def shared_examples(name, &block)
+      SharedExamples[name] = block
+    end
+
     def include(mod)
       @modules << ModuleInclusion.new(mod)
     end
