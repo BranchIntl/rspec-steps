@@ -78,15 +78,15 @@ module RSpec::Steps
       #noop
     end
 
-    def before(kind = :all, &callback)
+    def before(kind = :each, &callback)
       @hooks << Hook.new(:before, kind, callback)
     end
 
-    def after(kind = :all, &callback)
+    def after(kind = :each, &callback)
       @hooks << Hook.new(:after, kind, callback)
     end
 
-    def around(kind = :all, &callback)
+    def around(kind = :each, &callback)
       @hooks << Hook.new(:around, kind, callback)
     end
   end
