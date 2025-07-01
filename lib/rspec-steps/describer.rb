@@ -43,7 +43,7 @@ module RSpec::Steps
       name = args.first
       raise "shared step lists need a String for a name" unless name.is_a? String
       raise "there is already a step list named #{name}" if SharedSteps.has_key?(name)
-      SharedSteps[name] = block
+      SharedSteps[name] = Describer.new(args, {:caller => caller}, &block)
     end
 
     def shared_examples(name, &block)
@@ -58,10 +58,12 @@ module RSpec::Steps
       @modules << ModuleExtension.new(mod)
     end
 
-    def perform_steps(name, *args)
-      block = SharedSteps.fetch(name)
-      # Execute the shared steps block directly in the current context
-      instance_exec(*args, &block)
+    def perform_steps(name)
+      describer = SharedSteps.fetch(name)
+      @modules += describer.modules
+      @let_list += describer.let_list
+      @hooks += describer.hooks
+      @step_list += describer.step_list
     end
 
     def let(name, &block)
