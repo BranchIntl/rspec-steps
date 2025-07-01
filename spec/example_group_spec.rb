@@ -127,6 +127,10 @@ describe RSpec::Core::ExampleGroup do
         end
         group.run
       end
+
+      group.examples.each do |example|
+        expect(example.metadata[:execution_result].status).to eq(:passed)
+      end
     end
 
     it "should work with shared_steps/perform steps" do

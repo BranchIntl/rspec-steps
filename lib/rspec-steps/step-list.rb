@@ -11,10 +11,13 @@ module RSpec::Steps
       @let_blocks = {}
       @let_memos = Hash.new do |h,example|
         h[example] = Hash.new do |h, let_name|
-          h[let_name] = example.instance_eval(&@let_blocks.fetch(let_name))
+          # Use the step runner's example runner if available, otherwise fall back to example
+          evaluator = @current_step_runner&.instance_variable_get(:@_example_runner) || example
+          h[let_name] = evaluator.instance_eval(&@let_blocks.fetch(let_name))
         end
       end
       @results = nil
+      @current_step_runner = nil
     end
     attr_accessor :steps
 
@@ -62,6 +65,7 @@ module RSpec::Steps
       end
 
       step_runner = StepRunner.new(context_example, running_example)
+      @current_step_runner = step_runner
 
       @results = Hash[ @steps.map do |step|
         [
