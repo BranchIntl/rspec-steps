@@ -106,6 +106,30 @@ describe RSpec::Core::ExampleGroup do
       end
     end
 
+    it "should work with shared_steps with block arguments" do
+      group = nil
+      sandboxed do
+        group = RSpec.steps "Test Steps" do
+          shared_steps "add value" do |value|
+            it("adds #{value} to @values") { @values << value }
+          end
+
+          it("initialize values array") { @values = [] }
+          perform_steps "add value", "first"
+          perform_steps "add value", "second"
+          perform_steps "add value", "third"
+          it("check values") { @values.should == ["first", "second", "third"] }
+        end
+        group.run
+      end
+
+      expect(group.examples.length).to eq(5)
+
+      group.examples.each do |example|
+        expect(example.metadata[:execution_result].status).to eq(:passed)
+      end
+    end
+
     it "should work with shared_examples" do
       group = nil
       sandboxed do
