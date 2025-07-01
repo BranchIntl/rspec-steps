@@ -21,7 +21,7 @@ module RSpec::Steps
       action = self.action
 
       step_runner.instance_eval do
-        instance_exec(@running_example, &action)
+        instance_exec(@_running_example, &action)
       end
     end
 
