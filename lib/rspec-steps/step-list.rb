@@ -79,7 +79,7 @@ module RSpec::Steps
       end ]
 
       step_runner.instance_eval do
-        @step_context.run_after_hooks(:step, @example_runner)
+        @_step_context.run_after_hooks(:step, @_example_runner)
       end
     end
 
